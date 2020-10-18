@@ -226,12 +226,14 @@ def estimate_bmap_laplacian(img, sigma_c, std1, std2):
     edge_map = feature.canny(gimg, sigma_c)
 
     sparse_bmap = estimate_sparse_blur(gimg, edge_map, std1, std2)
-    h, w = sparse_bmap.shape
+    # h, w = sparse_bmap.shape
 
-    L1 = get_laplacian(img / 255.0)
-    A, b = make_system(L1, sparse_bmap.T)
+    bmap = propagate_laplacian(img, sparse_bmap)
 
-    bmap = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
+    # L1 = get_laplacian(img / 255.0)
+    # A, b = make_system(L1, sparse_bmap.T)
+    #
+    # bmap = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
 
     return bmap
 
