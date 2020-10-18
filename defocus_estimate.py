@@ -4,11 +4,18 @@ import scipy.ndimage
 import scipy.sparse
 import scipy.sparse.linalg
 
-# import matplotlib.pyplot as plt
 
 from skimage import feature
 
+
 def make_system(L, sparse_map, constraint_factor=0.001):
+    '''
+
+    :param L:
+    :param sparse_map:
+    :param constraint_factor:
+    :return:
+    '''
     # split trimap into foreground, background, known and unknown masks
     spflatten = sparse_map.ravel()
 
@@ -23,6 +30,13 @@ def make_system(L, sparse_map, constraint_factor=0.001):
 
 
 def g1x(x, y, s1):
+    '''
+
+    :param x:
+    :param y:
+    :param s1:
+    :return:
+    '''
     s1sq = s1 ** 2
     g = -1 * np.multiply(np.divide(x, 2 * np.pi * s1sq ** 2),
                          np.exp(-1 * np.divide(x ** 2 + y ** 2, 2 * s1sq)))
@@ -31,6 +45,13 @@ def g1x(x, y, s1):
 
 
 def g1y(x, y, s1):
+    '''
+
+    :param x:
+    :param y:
+    :param s1:
+    :return:
+    '''
     s1sq = s1 ** 2
     g = -1 * np.multiply(np.divide(y, 2 * np.pi * s1sq ** 2),
                          np.exp(-1 * np.divide(x ** 2 + y ** 2, 2 * s1sq)))
@@ -38,38 +59,13 @@ def g1y(x, y, s1):
     return g
 
 
-def estimate_sparse_blur(gimg, edge_map, std1, std2):
-    half_window = 11
-    m = half_window * 2 + 1
-    a = np.arange(-half_window, half_window + 1)
-    xmesh = np.tile(a, (m, 1))
-    ymesh = xmesh.T
-
-    f11 = g1x(xmesh, ymesh, std1)
-    f12 = g1y(xmesh, ymesh, std1)
-
-    f21 = g1x(xmesh, ymesh, std2)
-    f22 = g1y(xmesh, ymesh, std2)
-
-    gimx1 = scipy.ndimage.convolve(gimg, f11, mode='nearest')
-    gimy1 = scipy.ndimage.convolve(gimg, f12, mode='nearest')
-    mg1 = np.sqrt(gimx1 ** 2 + gimy1 ** 2)
-
-    gimx2 = scipy.ndimage.convolve(gimg, f21, mode='nearest')
-    gimy2 = scipy.ndimage.convolve(gimg, f22, mode='nearest')
-    mg2 = np.sqrt(gimx2 ** 2 + gimy2 ** 2)
-
-    R = np.divide(mg1, mg2)
-    R = np.multiply(R, edge_map > 0)
-
-    sparse_bmap = np.sqrt(np.divide(R ** 2 * (std1 ** 2) - (std2 ** 2), 1 - R ** 2))
-    sparse_bmap[np.isnan(sparse_bmap)] = 0
-    sparse_bmap[sparse_bmap > 5] = 5
-
-    return sparse_bmap
-
-
 def get_laplacian(I, r=1):
+    '''
+
+    :param I:
+    :param r:
+    :return:
+    '''
     eps = 0.0000001
     h, w, c = I.shape
     wr = (2 * r + 1) * (2 * r + 1)
@@ -152,22 +148,13 @@ def get_laplacian(I, r=1):
     return LDsparse - Lsparse
 
 
-def estimate_bmap_laplacian(img, sigma_c, std1, std2):
-    gimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) / 255.0
-    edge_map = feature.canny(gimg, sigma_c)
-
-    sparse_bmap = estimate_sparse_blur(gimg, edge_map, std1, std2)
-    h, w = sparse_bmap.shape
-
-    L1 = get_laplacian(img / 255.0)
-    A, b = make_system(L1, sparse_bmap.T)
-
-    bmap = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
-
-    return bmap
-
-
 def propagate_laplacian(img, bmap):
+    '''
+
+    :param img:
+    :param bmap:
+    :return:
+    '''
 
     L1 = get_laplacian(img / 255.0)
 
@@ -183,4 +170,65 @@ def propagate_laplacian(img, bmap):
 
     return bmapLaplacian
 
+
+def estimate_sparse_blur(gimg, edge_map, std1, std2):
+    '''
+
+    :param gimg:
+    :param edge_map:
+    :param std1:
+    :param std2:
+    :return:
+    '''
+    half_window = 11
+    m = half_window * 2 + 1
+    a = np.arange(-half_window, half_window + 1)
+    xmesh = np.tile(a, (m, 1))
+    ymesh = xmesh.T
+
+    f11 = g1x(xmesh, ymesh, std1)
+    f12 = g1y(xmesh, ymesh, std1)
+
+    f21 = g1x(xmesh, ymesh, std2)
+    f22 = g1y(xmesh, ymesh, std2)
+
+    gimx1 = scipy.ndimage.convolve(gimg, f11, mode='nearest')
+    gimy1 = scipy.ndimage.convolve(gimg, f12, mode='nearest')
+    mg1 = np.sqrt(gimx1 ** 2 + gimy1 ** 2)
+
+    gimx2 = scipy.ndimage.convolve(gimg, f21, mode='nearest')
+    gimy2 = scipy.ndimage.convolve(gimg, f22, mode='nearest')
+    mg2 = np.sqrt(gimx2 ** 2 + gimy2 ** 2)
+
+    R = np.divide(mg1, mg2)
+    R = np.multiply(R, edge_map > 0)
+
+    sparse_bmap = np.sqrt(np.divide(R ** 2 * (std1 ** 2) - (std2 ** 2), 1 - R ** 2))
+    sparse_bmap[np.isnan(sparse_bmap)] = 0
+    sparse_bmap[sparse_bmap > 5] = 5
+
+    return sparse_bmap
+
+
+def estimate_bmap_laplacian(img, sigma_c, std1, std2):
+    '''
+
+    :param img:
+    :param sigma_c:
+    :param std1:
+    :param std2:
+    :return:
+    '''
+    gimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) / 255.0
+    edge_map = feature.canny(gimg, sigma_c)
+
+    sparse_bmap = estimate_sparse_blur(gimg, edge_map, std1, std2)
+    h, w = sparse_bmap.shape
+
+    L1 = get_laplacian(img / 255.0)
+    A, b = make_system(L1, sparse_bmap.T)
+
+    bmap = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
+
+    return bmap
 
