@@ -203,7 +203,10 @@ def estimate_sparse_blur(gimg, edge_map, std1, std2):
     R = np.divide(mg1, mg2)
     R = np.multiply(R, edge_map > 0)
 
-    sparse_bmap = np.sqrt(np.divide(R ** 2 * (std1 ** 2) - (std2 ** 2), 1 - R ** 2))
+    sparse_vals = np.divide(R ** 2 * (std1 ** 2) - (std2 ** 2), 1 - R ** 2)
+    sparse_vals[sparse_vals < 0] = 0
+
+    sparse_bmap = np.sqrt(sparse_vals)
     sparse_bmap[np.isnan(sparse_bmap)] = 0
     sparse_bmap[sparse_bmap > 5] = 5
 
