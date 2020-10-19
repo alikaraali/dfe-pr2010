@@ -23,6 +23,6 @@ if __name__ == '__main__':
     img = cv2.imread(args['image'])
     fblurmap = estimate_bmap_laplacian(img, sigma_c = 1, std1 = 1, std2 = 1.5)
 
-    cv2.imwrite('image_bmap.png', np.uint8(fblurmap*255))
+    cv2.imwrite('image_bmap2.png', np.uint8((fblurmap / fblurmap.max()) * 255))
 
 

@@ -148,29 +148,6 @@ def get_laplacian(I, r=1):
     return LDsparse - Lsparse
 
 
-def propagate_laplacian(img, bmap):
-    '''
-
-    :param img:
-    :param bmap:
-    :return:
-    '''
-
-    L1 = get_laplacian(img / 255.0)
-
-    gimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) / 255.0
-    mask = feature.canny(gimg, 1.0) * 1.0
-    h, w = mask.shape
-
-    maskcoord = np.where(mask == 1.0)
-    mask[maskcoord[0], maskcoord[1]] = bmap[maskcoord[0], maskcoord[1]]
-    A, b = make_system(L1, mask.T)
-
-    bmapLaplacian = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
-
-    return bmapLaplacian
-
-
 def estimate_sparse_blur(gimg, edge_map, std1, std2):
     '''
 
@@ -226,14 +203,12 @@ def estimate_bmap_laplacian(img, sigma_c, std1, std2):
     edge_map = feature.canny(gimg, sigma_c)
 
     sparse_bmap = estimate_sparse_blur(gimg, edge_map, std1, std2)
-    # h, w = sparse_bmap.shape
+    h, w = sparse_bmap.shape
 
-    bmap = propagate_laplacian(img, sparse_bmap)
+    L1 = get_laplacian(img / 255.0)
+    A, b = make_system(L1, sparse_bmap.T)
 
-    # L1 = get_laplacian(img / 255.0)
-    # A, b = make_system(L1, sparse_bmap.T)
-    #
-    # bmap = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
+    bmap = scipy.sparse.linalg.spsolve(A, b).reshape(w, h).T
 
     return bmap
 
