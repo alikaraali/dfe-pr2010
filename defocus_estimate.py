@@ -11,12 +11,12 @@ from skimage import feature
 def make_system(L, sparse_map, constraint_factor=0.001):
     '''
 
-    :param L:
-    :param sparse_map:
-    :param constraint_factor:
-    :return:
+    :param L: Laplacian Matrix.
+    Check the paper "A closed-form solution to natural image matting"
+    :param sparse_map: Estimated sparse blur values
+    :param constraint_factor: Internal parameter for propagation
+    :return: System parameters to solve for defocus blur propagation
     '''
-    # split trimap into foreground, background, known and unknown masks
     spflatten = sparse_map.ravel()
 
     D = scipy.sparse.diags(spflatten)
@@ -62,9 +62,9 @@ def g1y(x, y, s1):
 def get_laplacian(I, r=1):
     '''
 
-    :param I:
-    :param r:
-    :return:
+    :param I: An RGB image [0-1]
+    :param r: radius
+    :return: The Laplacian matrix explained in Levin's paper
     '''
     eps = 0.0000001
     h, w, c = I.shape
@@ -151,11 +151,11 @@ def get_laplacian(I, r=1):
 def estimate_sparse_blur(gimg, edge_map, std1, std2):
     '''
 
-    :param gimg:
-    :param edge_map:
-    :param std1:
-    :param std2:
-    :return:
+    :param gimg: Grayscale image
+    :param edge_map: An edge map of the image
+    :param std1: Standard deviation of reblurring
+    :param std2: Standard deviation of second reblurring
+    :return: Estimated sparse blur values at edge locations
     '''
     half_window = 11
     m = half_window * 2 + 1
@@ -193,11 +193,11 @@ def estimate_sparse_blur(gimg, edge_map, std1, std2):
 def estimate_bmap_laplacian(img, sigma_c, std1, std2):
     '''
 
-    :param img:
-    :param sigma_c:
-    :param std1:
-    :param std2:
-    :return:
+    :param img: An RGB image [0-255]
+    :param sigma_c: Sigma parameter for Canny edge detector
+    :param std1: Standard deviation of reblurring
+    :param std2: Standard deviation of second reblurring
+    :return: defocus blur map of the given image
     '''
     gimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) / 255.0
     edge_map = feature.canny(gimg, sigma_c)
